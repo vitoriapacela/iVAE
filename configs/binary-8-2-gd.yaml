@@ -1,0 +1,87 @@
+# dataset
+# nps: 100
+# nps: 1000
+nps: 2000
+# nps: 8000
+ns: 40
+dl: 2
+dd: 8
+nl: 2
+p: 'gauss'
+act: 'none'
+uncentered: true
+# noisy: 0.1
+noisy: 0.0
+
+# model args
+# n_layers: 1
+n_layers: 2
+hidden_dim: 50
+activation: 'lrelu'
+ica: true
+tcl: false
+
+# learning
+a: 100
+b: 1
+c: 0
+d: 10
+gamma: 0
+# batch_size: 50
+epochs: 1000000
+# epochs: 20
+no_scheduler: true
+scheduler_tol: 20
+anneal: false
+anneal_epoch: 20
+
+# more configs
+shuffle: true
+one_hot: true
+checkpoint: true
+simple_mixing: true
+terms: false
+# g_simple MLP:
+g: true
+discrete: true
+identity: false
+stop: 50
+early: false
+# cond_thresh: 2
+same_var: false
+simple_prior: true
+simple_logv: true
+fix_v: false
+logvar: -6.8
+custom_data: false
+std_lower: 0.5
+std_upper: 3.0
+diag: false
+percentile: 20
+
+# Tracking
+track_prior: true
+# wandb: true
+wandb: false
+tensorboard: false
+comet: false
+plot_freq: 500
+check_freq: 500
+verbose: false
+
+# Normalizations
+norm_mean_data: false
+norm_logl_data: false
+
+norm_f: false
+norm_A_data: false
+
+norm_prior_mean: false
+norm_logl: false
+
+# optimization
+lbfgs: false
+gd: true
+tol: 0.0001
+# lr: 0.01
+lr: 0.1

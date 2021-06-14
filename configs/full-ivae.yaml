@@ -1,0 +1,54 @@
+# dataset
+nps: 2000
+ns: 120
+dl: 2
+dd: 2
+nl: 2
+p: 'gauss'
+act: 'none'
+uncentered: false
+noisy: 0.1
+
+# model args
+n_layers: 2
+hidden_dim: 50
+activation: 'lrelu'
+ica: true
+tcl: false
+
+# learning
+a: 100
+b: 1
+c: 0
+d: 10
+gamma: 0
+lr: 0.001
+batch_size: 50
+# epochs: 800
+epochs: 1
+no_scheduler: true
+scheduler_tol: 20
+anneal: false
+anneal_epoch: 20
+
+# more configs
+shuffle: true
+one_hot: true
+checkpoint: true
+simple_mixing: true
+terms: true
+# g_simple MLP:
+g: true
+discrete: false
+# check_freq: 10
+check_freq: 1
+identity: false
+stop: 50
+early: false
+cond_thresh: 2
+same_var: false
+simple_prior: false
+tensorboard: false
+comet: false
+simple_logv: false
+wandb: true
