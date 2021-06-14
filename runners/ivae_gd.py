@@ -235,14 +235,13 @@ def runner(args, config):
         
 #         optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr)
 
-        if (config.lbfgs) and (not config.gd):
-            optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
-#             optimizer = optim.LBFGS(model.parameters(), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe') 
-#             optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr) 
-#             optimizer = optim.LBFGS(model.parameters(), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr) 
+#         if (config.lbfgs) and (not config.gd):
+#             optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
             
-        elif (config.gd) and (not config.lbfgs):
-             optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
+#         elif (config.gd) and (not config.lbfgs):
+#              optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
+                
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
                 
         else:
             raise ValueError("The optimization should be with either GD or LBFGS.")
@@ -390,17 +389,17 @@ def runner(args, config):
                         perf = 0
                     train_perf += perf
 
-                elif config.lbfgs:
-                    def closure():
-                        optimizer.zero_grad()
+#                 elif config.lbfgs:
+#                     def closure():
+#                         optimizer.zero_grad()
 
-                        # set seed for sampling z. the loss becomes deterministic.
-                        torch.manual_seed(seed)
+#                         # set seed for sampling z. the loss becomes deterministic.
+#                         torch.manual_seed(seed)
 
-                        loss, z = model.elbo(x, u, len(dset))
-                        loss.retain_grad()
-                        loss.backward(retain_graph=factor)
-                        return loss
+#                         loss, z = model.elbo(x, u, len(dset))
+#                         loss.retain_grad()
+#                         loss.backward(retain_graph=factor)
+#                         return loss
 
                 with torch.no_grad():
                     # track parameters here
@@ -409,13 +408,15 @@ def runner(args, config):
 #                     all_param = filter(lambda p: p.requires_grad, model.parameters()) # as it is, this generates an error
                     vec = torch.nn.utils.parameters_to_vector(all_param)
                 
-                if config.lbfgs:
-                    loss = optimizer.step(closure)
-#                     print(optimizer.state_dict())
-                    train_loss += loss.item()
+#                 if config.lbfgs:
+#                     loss = optimizer.step(closure)
+# #                     print(optimizer.state_dict())
+#                     train_loss += loss.item()
                     
-                elif config.gd:
-                    optimizer.step()
+#                 elif config.gd:
+#                     optimizer.step()
+                
+                optimizer.step()
                 
                 with torch.no_grad():
                     # parameters after the update
