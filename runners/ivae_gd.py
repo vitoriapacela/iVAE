@@ -243,8 +243,8 @@ def runner(args, config):
                 
         optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
                 
-        else:
-            raise ValueError("The optimization should be with either GD or LBFGS.")
+#         else:
+#             raise ValueError("The optimization should be with either GD or LBFGS.")
 
 #         if not config.no_scheduler:
 #             # only initialize the scheduler if no_scheduler==False

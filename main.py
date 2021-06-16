@@ -10,7 +10,7 @@ import torch
 import yaml
 
 # from runners import ivae_runner, tcl_runner, ivae_sgd_runner, ivae_lbfgs_runner, ivae_data_runner, ivae_lbfgs2_runner, ivae_gd_runner
-from runners import tcl_runner, ivae_lbfgs_runner, ivae_gd_runner
+from runners import tcl_runner, ivae_lbfgs_runner, ivae_gd_runner, fastica_runner
 torch.set_default_dtype(torch.double)
 torch.backends.cudnn.benchmark = False
 # torch.set_deterministic(True) # does not work
@@ -179,7 +179,10 @@ def main():
     
     if new_config.tcl:
         r = tcl_runner(args, new_config)
+    elif new_config.fastica:
+        r = fastica_runner(args, new_config)
     else:
+#     elif new_config.ica: 
         if new_config.lbfgs:
             r = ivae_lbfgs_runner(args, new_config)
         else:

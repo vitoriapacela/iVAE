@@ -48,4 +48,6 @@ module load pytorch/1.4
 #srun python3 main.py --config binary-6-2-lbfgs-100s.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2_100s.log
 # srun python3 main.py --config binary-6-2-lbfgs-20s.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2_20s.log
 # srun python3 main.py --config binary-6-2-lbfgs-10s.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2_10s.log
-srun python3 main.py --config binary-6-2-lbfgs-1s.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2_1s.log
+# srun python3 main.py --config binary-6-2-lbfgs-1s.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2_1s.log
+# srun python3 main.py --config binary-6-2-fast_ica.yaml --n-sims 3 --m 2.0 --s "$@" > "$1"_b_6_2.log
+srun python3 main.py --config binary-6-2-fast_ica.yaml --n-sims 3 --m 2.0 --s 0

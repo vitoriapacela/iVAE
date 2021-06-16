@@ -205,18 +205,7 @@ def runner(args, config):
         if config.wandb:
             wandb.watch(model, log='all')
 
-        if (config.lbfgs) and (not config.gd):
-            optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
-#             optimizer = optim.LBFGS(model.parameters(), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe') 
-#             optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr) 
-#             optimizer = optim.LBFGS(model.parameters(), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr) 
-            
-        elif (config.gd) and (not config.lbfgs):
-             optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
-                
-        else:
-            raise ValueError("The optimization should be with either GD or LBFGS.")
-
+        optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
 
         # load all training data
         Xt, Ut, St, At = dset.x.to(config.device), dset.u.to(config.device), dset.s.to(config.device), torch.from_numpy(dset.A_mix).to(config.device)
@@ -270,230 +259,155 @@ def runner(args, config):
                     x, x2, u, s_true = data
 
                 x, u = x.to(config.device), u.to(config.device)
-                
-                if config.gd:
+
+                def closure():
+                    nonlocal count
                     optimizer.zero_grad()
 
-                    # fix learning seed for sampling operation in the reparemeterization trick
+                    # set seed for sampling z. the loss becomes deterministic.
                     torch.manual_seed(seed)
 
-                    if config.terms:
-                        loss, z, logpx, logps_cu, logqs_cux = model.elbo(x, u, len(dset))
-
-                        # set latent sources to true sources
-                        if args.set_inf:
-                            z = s_true
-
-                    else:
-                        loss, z = model.elbo(x, u, len(dset), a=a, b=b, c=c, d=d)
-
-
-                    # compute gradient
-                    loss.retain_grad()
-                    loss.backward(retain_graph=factor)
-
-                    # Normalize mixing model
-                    # Only defined for when the mixing model is a linear transformation!
-                    # That is, no hidden layers, n_layers=1 !!!
-                    if config.norm_f:
-                        with torch.no_grad():
-                            h = model.f.fc[0].weight.clone().detach()
-                            model.f.fc[0].weight[:] = torch.nn.Parameter(h.div_(torch.norm(h, dim=0, keepdim=True))) # columns  
-                        
-                    if config.norm_logl:
-                        # normalize prior log-variances
-                        with torch.no_grad():
-    #                         h = model.logl.fc[0].weight.clone().detach()
-    #                         model.logl.fc[0].weight[:] = torch.nn.Parameter(h.div_(torch.norm(h, dim=0, keepdim=True))) # column-wise. Do not use. There is scale indeterminacy in the mixing matrix which is connected to a variance of a single source over all segments, not all sources over one segment.
-
-                            ## Use this usually!
-                            h = model.logl.fc[0].weight.clone().detach()
-                            model.logl.fc[0].weight[:] = torch.nn.Parameter(h.div_(torch.norm(h, dim=1, keepdim=True))) # row-wise
-
-                            # normalize the variance and project to log-variance
-    #                         h = model.logl.fc[0].weight.clone().detach()
-    #                         var = h.exp()
-    #                         norm_var = var.div_( torch.norm(var, dim=1, keepdim=True) )
-    #                         norm_logl = norm_var.log()
-    #                         model.logl.fc[0].weight[:] = torch.nn.Parameter(norm_logl)
-
-    #                         h_ = model.logl.fc[0].weight.clone().detach()
-    #                         model.logl.fc[0].weight[:] = torch.nn.Parameter(h_.div_(torch.norm(h_, keepdim=True))) # Frobenius (all matrix)
-    
-                    if config.norm_prior_mean:
-                            # normalize prior means
-                        with torch.no_grad():
-    #                         h_ = model.prior_mean.fc[0].weight.clone().detach()
-    #                         model.prior_mean.fc[0].weight[:] = torch.nn.Parameter(h_.div_(torch.norm(h_, dim=0, keepdim=True))) # column-wise. Do NOT use. There is scale indeterminacy in the mixing matrix which is connected to a variance of a single source over all segments, not all sources over one segment.
-
-                            h_ = model.prior_mean.fc[0].weight.clone().detach()
-                            model.prior_mean.fc[0].weight[:] = torch.nn.Parameter(h_.div_(torch.norm(h_, dim=1, keepdim=True))) # row-wise
-
-    #                         h_ = model.prior_mean.fc[0].weight.clone().detach()
-    #                         model.prior_mean.fc[0].weight[:] = torch.nn.Parameter(h_.div_(torch.norm(h_, keepdim=True))) # Frobenius (all matrix)
-                
-
-                    # batch loss
-                    train_loss += loss.item()
-                
-                    # MCC sources (training batch)
-                    try:
-                        perf = mcc(s_true.numpy(), z.cpu().detach().numpy())
-                        # why does this work? should be 
-                        # perf = mcc(s_true.cpu().numpy(), z.cpu().detach().numpy())
-                    except:
-                        perf = 0
-                    train_perf += perf
-
-                elif config.lbfgs:
-                    def closure():
-                        nonlocal count
-                        optimizer.zero_grad()
-
-                        # set seed for sampling z. the loss becomes deterministic.
-                        torch.manual_seed(seed)
-
-                        # not tracking the norm of the difference between parameters because it is always 0
+                    # not tracking the norm of the difference between parameters because it is always 0
 #                         with torch.no_grad():
 #                             # track parameters here
 #                             # parameters before the update
 #                             all_param = [m.data for m in model.parameters()]
 #         #                     all_param = filter(lambda p: p.requires_grad, model.parameters()) # as it is, this generates an error
 #                             vec = torch.nn.utils.parameters_to_vector(all_param)
-                        
-                        loss, z = model.elbo(x, u, len(dset))
-                        loss.retain_grad()
-                        loss.backward(retain_graph=factor)
-                        train_loss = loss.item()
-    
-                        count = count + 1
-    
-                        iteration_time = time.time()
-        
-                        if config.track_grad_norm:
-                            with torch.no_grad():
-    #                             # parameters after the update
-    #                             new_param = [m.data for m in model.parameters()]
-    #                             new_vec = torch.nn.utils.parameters_to_vector(all_param)
 
-    #                             norm_diff = torch.norm(new_vec - vec)
-    #                             norm_diff = norm_diff.item()
+                    loss, z = model.elbo(x, u, len(dset))
+                    loss.retain_grad()
+                    loss.backward(retain_graph=factor)
+                    train_loss = loss.item()
 
-                                # gradients
-                                model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-                #                 grads = [param.grad for param in model.parameters()]
-                                grads = [param.grad for param in model_parameters]
-                                grads_together = torch.nn.utils.parameters_to_vector(grads)
-                                grad_norm = torch.norm(grads_together)
-                                grad_norm = grad_norm.item()
-                                
-                        else:
-                            grad_norm = 0
-        
-                        # validation loss
+                    count = count + 1
+
+                    iteration_time = time.time()
+
+                    if config.track_grad_norm:
                         with torch.no_grad():
-                            if config.terms:
-                                val_loss, val_z, _, _, _ = model.elbo(val_X, val_U, len(val_dset))
-                            else:
-                                val_loss, val_z = model.elbo(val_X, val_U, len(val_dset), a=a, b=b, c=c, d=d)
-                            val_loss = val_loss.item()
-                            
-                            
-                        # MCC score (sources) on the whole training dataset (as opposed to just the training batch)
-                        try:
-#                             perf_all = mcc(dset.s.numpy(), s.cpu().detach().numpy())
-                            perf_all = mcc(dset.s.numpy(), z.cpu().detach().numpy())
-                        except:
-                            perf_all = 0
-                        train_perf = perf_all
+#                             # parameters after the update
+#                             new_param = [m.data for m in model.parameters()]
+#                             new_vec = torch.nn.utils.parameters_to_vector(all_param)
 
-                        # MCC (sources) whole validation set
-                        try:
-                            val_perf = mcc(val_S.cpu().detach().numpy(), val_z.cpu().detach().numpy())
-                        except:
-                            val_perf = 0
+#                             norm_diff = torch.norm(new_vec - vec)
+#                             norm_diff = norm_diff.item()
 
-                        # MCS mixing matrix linear assignment
-                        try:
-            #                 mix_perf = mcc(model.f.fc[0].weight.data, At, method='cos')
-                            mix_perf = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
-                        except:
-                            mix_perf = 0
+                            # gradients
+                            model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+            #                 grads = [param.grad for param in model.parameters()]
+                            grads = [param.grad for param in model_parameters]
+                            grads_together = torch.nn.utils.parameters_to_vector(grads)
+                            grad_norm = torch.norm(grads_together)
+                            grad_norm = grad_norm.item()
 
-                        # MCS mixing matrix linear permutations
-                        if ((config.dd < 11) and (config.dl < 11)):
-                            try:
-                #                 mix_mcs = mcs_p(model.f.fc[0].weight.data, At, method='cos')
-                                mix_mcs = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
-                            except:
-                                mix_mcs = 0
-                            if not (config.nps==10):
-                                mix_mcs = mix_mcs.item()
+                    else:
+                        grad_norm = 0
+
+                    # validation loss
+                    with torch.no_grad():
+                        if config.terms:
+                            val_loss, val_z, _, _, _ = model.elbo(val_X, val_U, len(val_dset))
                         else:
-                            mix_mcs = 0
-                        
-    
-                        if config.uncentered or config.discrete:
-                            if config.dd > 1 and config.dl > 1 and config.ns > 1:
-                                # MCC of prior mean
-                                est_mean = (model.prior_mean.fc[0].weight.cpu().detach().numpy()).T
-                                mcs_mean = mcc(dset.m, est_mean, method='cos')
+                            val_loss, val_z = model.elbo(val_X, val_U, len(val_dset), a=a, b=b, c=c, d=d)
+                        val_loss = val_loss.item()
 
+
+                    # MCC score (sources) on the whole training dataset (as opposed to just the training batch)
+                    try:
+#                             perf_all = mcc(dset.s.numpy(), s.cpu().detach().numpy())
+                        perf_all = mcc(dset.s.numpy(), z.cpu().detach().numpy())
+                    except:
+                        perf_all = 0
+                    train_perf = perf_all
+
+                    # MCC (sources) whole validation set
+                    try:
+                        val_perf = mcc(val_S.cpu().detach().numpy(), val_z.cpu().detach().numpy())
+                    except:
+                        val_perf = 0
+
+                    # MCS mixing matrix linear assignment
+                    try:
+        #                 mix_perf = mcc(model.f.fc[0].weight.data, At, method='cos')
+                        mix_perf = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
+                    except:
+                        mix_perf = 0
+
+                    # MCS mixing matrix linear permutations
+                    if ((config.dd < 11) and (config.dl < 11)):
+                        try:
+            #                 mix_mcs = mcs_p(model.f.fc[0].weight.data, At, method='cos')
+                            mix_mcs = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
+                        except:
+                            mix_mcs = 0
+                        if not (config.nps==10):
+                            mix_mcs = mix_mcs.item()
+                    else:
+                        mix_mcs = 0
+
+
+                    if config.uncentered or config.discrete:
                         if config.dd > 1 and config.dl > 1 and config.ns > 1:
-                            # MCC of prior variance
-                            est_var = (model.logl.fc[0].weight.cpu().detach().numpy()).T
-                            mcs_var = mcc(dset.l, est_var, method='cos')
-    
-                        if config.verbose:
-                            print('==> Step {}:\t train loss: {:.6f}\t train perf: {:.6f} \t full perf: {:,.6f} \t mcs lin: {:,.6f} \t mcs p: {:,.6f}'.format(count, train_loss, train_perf, perf_all, mix_perf, mix_mcs))
-                            print('==> \t val loss: {:.6f}\t full val perf: {:.6f}'.format(val_loss, val_perf))
-                    
+                            # MCC of prior mean
+                            est_mean = (model.prior_mean.fc[0].weight.cpu().detach().numpy()).T
+                            mcs_mean = mcc(dset.m, est_mean, method='cos')
+
+                    if config.dd > 1 and config.dl > 1 and config.ns > 1:
+                        # MCC of prior variance
+                        est_var = (model.logl.fc[0].weight.cpu().detach().numpy()).T
+                        mcs_var = mcc(dset.l, est_var, method='cos')
+
+                    if config.verbose:
+                        print('==> Step {}:\t train loss: {:.6f}\t train perf: {:.6f} \t full perf: {:,.6f} \t mcs lin: {:,.6f} \t mcs p: {:,.6f}'.format(count, train_loss, train_perf, perf_all, mix_perf, mix_mcs))
+                        print('==> \t val loss: {:.6f}\t full val perf: {:.6f}'.format(val_loss, val_perf))
+
 #                         if config.verbose:
 #                             print('norm diff params', norm_diff)
 #                             print('grad norm', grad_norm)
 
-                        norm_diff = 0
-    
-                        row_contents = [perf_all, train_loss, train_perf, val_loss, val_perf, mix_perf, mix_mcs, grad_norm, norm_diff, iteration_time]
-                        append_list_as_row(file_path, row_contents)
-                        
-                        if config.wandb:
-                            wandb.log({'Training loss': train_loss, 
-                                       'Mixing Matrix MCS Linear Assignment': mix_perf, 
-                                       'Mixing Matrix MCS Permutations': mix_mcs, 
-                                       'Training Batch MCC (Sources)': train_perf, 
-                                       'Training Set MCC (Sources)': perf_all, 
-                                       'Validation loss': val_loss, 
-                                       'Validation Set MCC (Sources)': val_perf,
-                                       'step': count
-                                      })
+                    norm_diff = 0
+
+                    row_contents = [perf_all, train_loss, train_perf, val_loss, val_perf, mix_perf, mix_mcs, grad_norm, norm_diff, iteration_time]
+                    append_list_as_row(file_path, row_contents)
+
+                    if config.wandb:
+                        wandb.log({'Training loss': train_loss, 
+                                   'Mixing Matrix MCS Linear Assignment': mix_perf, 
+                                   'Mixing Matrix MCS Permutations': mix_mcs, 
+                                   'Training Batch MCC (Sources)': train_perf, 
+                                   'Training Set MCC (Sources)': perf_all, 
+                                   'Validation loss': val_loss, 
+                                   'Validation Set MCC (Sources)': val_perf,
+                                   'step': count
+                                  })
+                        if config.dd > 1 and config.dl > 1:
+                            wandb.log({'Prior variance MCS': mcs_var, 'step': count})
+
+                        if config.uncentered or config.discrete:
                             if config.dd > 1 and config.dl > 1:
-                                wandb.log({'Prior variance MCS': mcs_var, 'step': count})
+                                wandb.log({'Prior mean MCS': mcs_mean, 'step': count})
 
-                            if config.uncentered or config.discrete:
-                                if config.dd > 1 and config.dl > 1:
-                                    wandb.log({'Prior mean MCS': mcs_mean, 'step': count})
+                        # The following assumes a square mixing matrix and a linear mixing model
+                        # Track mixing model weights
+                        for i in range(d_data):
+                            for j in range(d_latent): 
+                                wandb.log({'f_'+str(i)+str(j): model.f.fc[0].weight[i,j], 'step': count})
 
-                            # The following assumes a square mixing matrix and a linear mixing model
-                            # Track mixing model weights
-                            for i in range(d_data):
-                                for j in range(d_latent): 
-                                    wandb.log({'f_'+str(i)+str(j): model.f.fc[0].weight[i,j], 'step': count})
+                        if config.track_prior:
+                            # Track logl weights (do not use, there are too many weights)
+                            for i in range(d_latent):
+                                for j in range(d_aux):
+                                    wandb.log({'logl_'+str(i)+'_'+str(j): model.logl.fc[0].weight[i,j], 'step': count}) # track prior log-var
+                                    wandb.log({'prior_mean_'+str(i)+'_'+str(j): model.prior_mean.fc[0].weight[i,j], 'step': count}) # track prior means              
 
-                            if config.track_prior:
-                                # Track logl weights (do not use, there are too many weights)
-                                for i in range(d_latent):
-                                    for j in range(d_aux):
-                                        wandb.log({'logl_'+str(i)+'_'+str(j): model.logl.fc[0].weight[i,j], 'step': count}) # track prior log-var
-                                        wandb.log({'prior_mean_'+str(i)+'_'+str(j): model.prior_mean.fc[0].weight[i,j], 'step': count}) # track prior means              
+                        if config.terms:
+                            # Loss terms
+                            wandb.log({'decoder term (mixing model) log p(x|z,u)': logpx, 
+                                       'prior term log p(z|u)': logps_cu, 
+                                       'encoder term (inference model) log p(z|x,u)': logqs_cux,
+                                       'step': count}) 
 
-                            if config.terms:
-                                # Loss terms
-                                wandb.log({'decoder term (mixing model) log p(x|z,u)': logpx, 
-                                           'prior term log p(z|u)': logps_cu, 
-                                           'encoder term (inference model) log p(z|x,u)': logqs_cux,
-                                           'step': count}) 
-                                
 #                             wandb.log({'norm_diff_params': norm_diff, 'grad_norm': grad_norm, 'step': count})
                                 
                         if config.checkpoint:
@@ -526,12 +440,7 @@ def runner(args, config):
                         return loss
 
                 
-                if config.lbfgs:
-                    loss = optimizer.step(closure)
-#                     print(optimizer.state_dict())
-                    
-                elif config.gd:
-                    optimizer.step()
+                loss = optimizer.step(closure)
                 
 
 #             if config.ica:

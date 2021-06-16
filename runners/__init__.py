@@ -8,3 +8,4 @@ from .tcl import runner as tcl_runner
 from .ivae_gd import runner as ivae_gd_runner
 # from .ivae_gd_1 import runner as ivae_gd_runner_1
 from .ivae_final_lbfgs import runner as ivae_lbfgs_runner
+from .fast_ica import runner as fastica_runner
