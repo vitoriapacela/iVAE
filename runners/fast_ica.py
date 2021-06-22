@@ -126,7 +126,7 @@ def runner(args, config):
         # FastICA
         st = time.time() # starting time
         
-        transformer = FastICA(n_components=2, random_state=seed, whiten=True, max_iter=1000)
+        transformer = FastICA(n_components=config.dl, random_state=seed, whiten=True, max_iter=1000)
         S_est = transformer.fit_transform(X)
 
         ttime_s = time.time() - st # final time
