@@ -207,6 +207,7 @@ def runner(args, config):
 
         optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
 
+
         # load all training data
         Xt, Ut, St, At = dset.x.to(config.device), dset.u.to(config.device), dset.s.to(config.device), torch.from_numpy(dset.A_mix).to(config.device)
 
@@ -259,7 +260,7 @@ def runner(args, config):
                     x, x2, u, s_true = data
 
                 x, u = x.to(config.device), u.to(config.device)
-
+                
                 def closure():
                     nonlocal count
                     optimizer.zero_grad()
@@ -268,13 +269,8 @@ def runner(args, config):
                     torch.manual_seed(seed)
 
                     # not tracking the norm of the difference between parameters because it is always 0
-#                         with torch.no_grad():
-#                             # track parameters here
-#                             # parameters before the update
-#                             all_param = [m.data for m in model.parameters()]
-#         #                     all_param = filter(lambda p: p.requires_grad, model.parameters()) # as it is, this generates an error
-#                             vec = torch.nn.utils.parameters_to_vector(all_param)
 
+                    
                     loss, z = model.elbo(x, u, len(dset))
                     loss.retain_grad()
                     loss.backward(retain_graph=factor)
@@ -283,27 +279,22 @@ def runner(args, config):
                     count = count + 1
 
                     iteration_time = time.time()
-
+    
                     if config.track_grad_norm:
                         with torch.no_grad():
-#                             # parameters after the update
-#                             new_param = [m.data for m in model.parameters()]
-#                             new_vec = torch.nn.utils.parameters_to_vector(all_param)
 
-#                             norm_diff = torch.norm(new_vec - vec)
-#                             norm_diff = norm_diff.item()
 
                             # gradients
                             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-            #                 grads = [param.grad for param in model.parameters()]
+
                             grads = [param.grad for param in model_parameters]
                             grads_together = torch.nn.utils.parameters_to_vector(grads)
                             grad_norm = torch.norm(grads_together)
                             grad_norm = grad_norm.item()
-
+                            
                     else:
                         grad_norm = 0
-
+    
                     # validation loss
                     with torch.no_grad():
                         if config.terms:
@@ -311,11 +302,11 @@ def runner(args, config):
                         else:
                             val_loss, val_z = model.elbo(val_X, val_U, len(val_dset), a=a, b=b, c=c, d=d)
                         val_loss = val_loss.item()
-
-
+                        
+                        
                     # MCC score (sources) on the whole training dataset (as opposed to just the training batch)
                     try:
-#                             perf_all = mcc(dset.s.numpy(), s.cpu().detach().numpy())
+                        # perf_all = mcc(dset.s.numpy(), s.cpu().detach().numpy())
                         perf_all = mcc(dset.s.numpy(), z.cpu().detach().numpy())
                     except:
                         perf_all = 0
@@ -329,7 +320,7 @@ def runner(args, config):
 
                     # MCS mixing matrix linear assignment
                     try:
-        #                 mix_perf = mcc(model.f.fc[0].weight.data, At, method='cos')
+                        # mix_perf = mcc(model.f.fc[0].weight.data, At, method='cos')
                         mix_perf = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
                     except:
                         mix_perf = 0
@@ -337,7 +328,7 @@ def runner(args, config):
                     # MCS mixing matrix linear permutations
                     if ((config.dd < 11) and (config.dl < 11)):
                         try:
-            #                 mix_mcs = mcs_p(model.f.fc[0].weight.data, At, method='cos')
+                            # mix_mcs = mcs_p(model.f.fc[0].weight.data, At, method='cos')
                             mix_mcs = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
                         except:
                             mix_mcs = 0
@@ -345,7 +336,7 @@ def runner(args, config):
                             mix_mcs = mix_mcs.item()
                     else:
                         mix_mcs = 0
-
+                    
 
                     if config.uncentered or config.discrete:
                         if config.dd > 1 and config.dl > 1 and config.ns > 1:
@@ -361,26 +352,26 @@ def runner(args, config):
                     if config.verbose:
                         print('==> Step {}:\t train loss: {:.6f}\t train perf: {:.6f} \t full perf: {:,.6f} \t mcs lin: {:,.6f} \t mcs p: {:,.6f}'.format(count, train_loss, train_perf, perf_all, mix_perf, mix_mcs))
                         print('==> \t val loss: {:.6f}\t full val perf: {:.6f}'.format(val_loss, val_perf))
-
-#                         if config.verbose:
-#                             print('norm diff params', norm_diff)
-#                             print('grad norm', grad_norm)
+                
+                    # if config.verbose:
+                    #     print('norm diff params', norm_diff)
+                    #     print('grad norm', grad_norm)
 
                     norm_diff = 0
 
                     row_contents = [perf_all, train_loss, train_perf, val_loss, val_perf, mix_perf, mix_mcs, grad_norm, norm_diff, iteration_time]
                     append_list_as_row(file_path, row_contents)
-
+                    
                     if config.wandb:
                         wandb.log({'Training loss': train_loss, 
-                                   'Mixing Matrix MCS Linear Assignment': mix_perf, 
-                                   'Mixing Matrix MCS Permutations': mix_mcs, 
-                                   'Training Batch MCC (Sources)': train_perf, 
-                                   'Training Set MCC (Sources)': perf_all, 
-                                   'Validation loss': val_loss, 
-                                   'Validation Set MCC (Sources)': val_perf,
-                                   'step': count
-                                  })
+                                    'Mixing Matrix MCS Linear Assignment': mix_perf, 
+                                    'Mixing Matrix MCS Permutations': mix_mcs, 
+                                    'Training Batch MCC (Sources)': train_perf, 
+                                    'Training Set MCC (Sources)': perf_all, 
+                                    'Validation loss': val_loss, 
+                                    'Validation Set MCC (Sources)': val_perf,
+                                    'step': count
+                                    })
                         if config.dd > 1 and config.dl > 1:
                             wandb.log({'Prior variance MCS': mcs_var, 'step': count})
 
@@ -404,43 +395,44 @@ def runner(args, config):
                         if config.terms:
                             # Loss terms
                             wandb.log({'decoder term (mixing model) log p(x|z,u)': logpx, 
-                                       'prior term log p(z|u)': logps_cu, 
-                                       'encoder term (inference model) log p(z|x,u)': logqs_cux,
-                                       'step': count}) 
+                                        'prior term log p(z|u)': logps_cu, 
+                                        'encoder term (inference model) log p(z|x,u)': logqs_cux,
+                                        'step': count}) 
+                            
+                        # wandb.log({'norm_diff_params': norm_diff, 'grad_norm': grad_norm, 'step': count})
+                            
+                    if config.checkpoint:
+                        # save checkpoints (weights, loss, performance, meta-data) after every few steps
+                        if (count % check_freq == 0):
+                            # checkpoint every check_freq count to save space
+                            if config.terms:
+                                full_checkpoint(ckpt_folder, exp_id, seed, count, model, optimizer, train_loss, train_perf, perf_all, args.s, logpx, logps_cu, logqs_cux, val_loss, val_perf, mix_perf, verbose=config.verbose)
+                            else:
+                                grads = 0 # to change this
+                                checkpoint(ckpt_folder, exp_id, seed, count, model, optimizer, train_loss, train_perf, perf_all, args.s, val_loss, val_perf, mix_perf, grads, iteration_time, verbose=config.verbose)
 
-#                             wandb.log({'norm_diff_params': norm_diff, 'grad_norm': grad_norm, 'step': count})
-                                
-                        if config.checkpoint:
-                            # save checkpoints (weights, loss, performance, meta-data) after every few steps
-                            if (count % check_freq == 0):
-                                # checkpoint every check_freq count to save space
-                                if config.terms:
-                                    full_checkpoint(ckpt_folder, exp_id, seed, count, model, optimizer, train_loss, train_perf, perf_all, args.s, logpx, logps_cu, logqs_cux, val_loss, val_perf, mix_perf, verbose=config.verbose)
-                                else:
-                                    grads = 0 # to change this
-                                    checkpoint(ckpt_folder, exp_id, seed, count, model, optimizer, train_loss, train_perf, perf_all, args.s, val_loss, val_perf, mix_perf, grads, iteration_time, verbose=config.verbose)
+                        if (count % config.plot_freq == 0):
+                            fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
+                            ckpt_path = ckpt_folder + str(exp_id) + '/'+ str(exp_id) + '_learn-seed_' + str(seed) + '_data-seed_' + str(args.s) + '_ckpt_'
+                            if os.path.exists(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf'):
+                                os.remove(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
 
-                            if (count % config.plot_freq == 0):
-                                fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
-                                ckpt_path = ckpt_folder + str(exp_id) + '/'+ str(exp_id) + '_learn-seed_' + str(seed) + '_data-seed_' + str(args.s) + '_ckpt_'
-                                if os.path.exists(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf'):
-                                    os.remove(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
+                            weights_path = ckpt_path + '*.pth'
+                            weights_path_last = ckpt_path + str(count) + '.pth'
 
-                                weights_path = ckpt_path + '*.pth'
-                                weights_path_last = ckpt_path + str(count) + '.pth'
+                            if not config.discrete:
+                                continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
+                            else:
+                                plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
 
-                                if not config.discrete:
-                                    continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
-                                else:
-                                    plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
-
-            #                         _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', sample_freq=config.sample_freq)
-                                    _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
-                    
-                        return loss
-
+                                # _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', sample_freq=config.sample_freq)
+                                _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
+                
+                    return loss
                 
                 loss = optimizer.step(closure)
+                # print(optimizer.state_dict())
+                    
                 
 
 #             if config.ica:

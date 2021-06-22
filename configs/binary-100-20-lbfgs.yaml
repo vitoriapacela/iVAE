@@ -16,6 +16,7 @@ hidden_dim: 50
 activation: 'lrelu'
 ica: true
 tcl: false
+fastica: false
 
 # learning
 a: 100

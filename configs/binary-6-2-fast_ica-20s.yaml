@@ -1,9 +1,6 @@
 # dataset
-# nps: 100
-# nps: 1000
 nps: 2000
-# nps: 8000
-ns: 40
+ns: 20
 dl: 2
 dd: 6
 nl: 2
@@ -18,9 +15,9 @@ noisy: 0.0
 n_layers: 2
 hidden_dim: 50
 activation: 'lrelu'
-ica: true
+ica: false
 tcl: false
-fastica: false
+fastica: true
 
 # learning
 a: 100
@@ -28,10 +25,7 @@ b: 1
 c: 0
 d: 10
 gamma: 0
-# batch_size: 50
-# epochs: 1000000
-epochs: 1
-# epochs: 20
+# epochs: 1
 no_scheduler: true
 scheduler_tol: 20
 anneal: false
@@ -83,11 +77,11 @@ norm_A_data: false
 norm_prior_mean: false
 norm_logl: false
 
-# optimization
-lbfgs: true
-gd: false
-tol: 0.0001
-lr: 1
-history_size: 200
-# max_iter: 30
-max_iter: 1000
+# # optimization
+# lbfgs: true
+# gd: false
+# tol: 0.0001
+# lr: 1
+# history_size: 200
+# # max_iter: 30
+# max_iter: 1000
