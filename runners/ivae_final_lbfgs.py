@@ -411,22 +411,22 @@ def runner(args, config):
                                 grads = 0 # to change this
                                 checkpoint(ckpt_folder, exp_id, seed, count, model, optimizer, train_loss, train_perf, perf_all, args.s, val_loss, val_perf, mix_perf, grads, iteration_time, verbose=config.verbose)
 
-                        if (count % config.plot_freq == 0):
-                            fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
-                            ckpt_path = ckpt_folder + str(exp_id) + '/'+ str(exp_id) + '_learn-seed_' + str(seed) + '_data-seed_' + str(args.s) + '_ckpt_'
-                            if os.path.exists(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf'):
-                                os.remove(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
+                        # remove automatic plotting, since it may lead to memory issues
+                        # if (count % config.plot_freq == 0):
+                        #     fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
+                        #     ckpt_path = ckpt_folder + str(exp_id) + '/'+ str(exp_id) + '_learn-seed_' + str(seed) + '_data-seed_' + str(args.s) + '_ckpt_'
+                        #     if os.path.exists(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf'):
+                        #         os.remove(fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
 
-                            weights_path = ckpt_path + '*.pth'
-                            weights_path_last = ckpt_path + str(count) + '.pth'
+                        #     weights_path = ckpt_path + '*.pth'
+                        #     weights_path_last = ckpt_path + str(count) + '.pth'
 
-                            if not config.discrete:
-                                continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
-                            else:
-                                plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
+                        #     if not config.discrete:
+                        #         continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
+                        #     else:
+                        #         plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
 
-                                # _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', sample_freq=config.sample_freq)
-                                _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
+                        #         _disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
                 
                     return loss
                 

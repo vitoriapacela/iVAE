@@ -70,15 +70,15 @@ def runner(args, config):
     print('-------------------')
 
     loader_params = {'num_workers': 6, 'pin_memory': True} if torch.cuda.is_available() else {}
-    bs = config.nps*config.ns
-    data_loader = DataLoader(dset, batch_size=bs, shuffle=False, drop_last=True, **loader_params)
+    # bs = config.nps*config.ns
+    data_loader = DataLoader(dset, batch_size=config.batch_size, shuffle=False, drop_last=True, **loader_params)
 
     # Validation set
     val_dset = SyntheticDataset(args.data_path, config.nps, config.ns, config.dl, config.dd, config.nl, args.s, config.p, config.act, uncentered=config.uncentered, noisy=config.noisy, double=factor, one_hot_labels=config.one_hot, simple_mixing=config.simple_mixing, which='val', discrete=config.discrete, identity=config.identity, m_bounds=np.array([-args.m,args.m]), same_var=config.same_var, norm_A_data=config.norm_A_data, norm_logl=config.norm_logl_data, norm_prior_mean=config.norm_mean_data, std_bounds=np.array([config.std_lower, config.std_upper]), diag=config.diag, percentile=config.percentile)
 #     , cond_thresh=config.cond_thresh
     val_d_data, val_d_latent, val_d_aux = val_dset.get_dims()
 
-    val_data_loader = DataLoader(val_dset, batch_size=bs, shuffle=False, drop_last=True, **loader_params)
+    val_data_loader = DataLoader(val_dset, batch_size=config.batch_size, shuffle=False, drop_last=True, **loader_params)
 
     # Test set for plots
     test_dset = SyntheticDataset(args.data_path, config.nps, config.ns, config.dl, config.dd, config.nl, args.s, config.p, config.act, uncentered=config.uncentered, noisy=config.noisy, double=factor, one_hot_labels=config.one_hot, simple_mixing=config.simple_mixing, which='test', discrete=config.discrete, identity=config.identity, m_bounds=np.array([-args.m,args.m]), same_var=config.same_var, norm_A_data=config.norm_A_data, norm_logl=config.norm_logl_data, norm_prior_mean=config.norm_mean_data, std_bounds=np.array([config.std_lower, config.std_upper]), diag=config.diag, percentile=config.percentile)
@@ -233,7 +233,7 @@ def runner(args, config):
 
 #         optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
         
-#         optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr)
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr)
 
 #         if (config.lbfgs) and (not config.gd):
 #             optimizer = optim.LBFGS(filter(lambda p: p.requires_grad, model.parameters()), history_size=config.history_size, max_iter=config.max_iter, lr=config.lr, line_search_fn='strong_wolfe')
@@ -241,14 +241,14 @@ def runner(args, config):
 #         elif (config.gd) and (not config.lbfgs):
 #              optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
                 
-        optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
+        # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=config.lr) # use the filter if you want to fix some parameters
                 
 #         else:
 #             raise ValueError("The optimization should be with either GD or LBFGS.")
 
-#         if not config.no_scheduler:
-#             # only initialize the scheduler if no_scheduler==False
-#             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=0, verbose=True)
+        if not config.no_scheduler:
+            # only initialize the scheduler if no_scheduler==False
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=0, verbose=True)
 
 #         if factor:
 #             D = Discriminator(d_latent).to(config.device)
@@ -711,8 +711,10 @@ def runner(args, config):
                     if config.terms:
                         full_checkpoint(ckpt_folder, exp_id, seed, epoch, model, optimizer, train_loss, train_perf, perf_all, args.s, logpx, logps_cu, logqs_cux, val_loss, val_perf, mix_perf, verbose=config.verbose)
                     else:
+#                         checkpoint(ckpt_folder, exp_id, seed, epoch, model, optimizer, train_loss, train_perf, perf_all, args.s, val_loss, val_perf, mix_perf)
                         checkpoint(ckpt_folder, exp_id, seed, epoch, model, optimizer, train_loss, train_perf, perf_all, args.s, val_loss, val_perf, mix_perf, grads, iteration_time, verbose=config.verbose)
                         
+                # do not plot because of memory issues
                 # if (epoch % config.plot_freq == 0):
                 #     fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
                 #     ckpt_path = ckpt_folder + str(exp_id) + '/'+ str(exp_id) + '_learn-seed_' + str(seed) + '_data-seed_' + str(args.s) + '_ckpt_'
