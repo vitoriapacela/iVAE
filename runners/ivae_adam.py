@@ -59,15 +59,15 @@ def runner(args, config):
     d_data, d_latent, d_aux = dset.get_dims()
     
     # print true mixing matrix
-    print('-------------------')
-    print('True mixing matrix')
-    print(dset.A_mix)
-    print('-------------------')
+    # print('-------------------')
+    # print('True mixing matrix')
+    # print(dset.A_mix)
+    # print('-------------------')
     
-    # print true mixing matrix condition number
-    print('Condition number')
-    print(np.linalg.cond(dset.A_mix))
-    print('-------------------')
+    # # print true mixing matrix condition number
+    # print('Condition number')
+    # print(np.linalg.cond(dset.A_mix))
+    # print('-------------------')
 
     loader_params = {'num_workers': 6, 'pin_memory': True} if torch.cuda.is_available() else {}
     # bs = config.nps*config.ns
@@ -759,9 +759,10 @@ def runner(args, config):
         weights_path_last = ckpt_path + str(epoch-1) + '.pth' # need to be -1 because the last one is not saved, it breaks before
 
         # plots of sources only if continuous
-        if not config.discrete:
-            continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
-        else:
+        # if not config.discrete:
+        #     continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
+        # else:
+        if config.discrete:
             plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
             
             disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
@@ -777,8 +778,9 @@ def runner(args, config):
     if config.tensorboard:
         writer.close()
 
+    ## remove automatic plotting due to memory issues
     # Analysis plots of all learning seeds together
-    fname2 = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
-    plot_all(run=args.run, config=args.config, s=args.s, seed=args.seed, n_sims=args.n_sims, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname2+'_'+str(exp_id)+'_analysis.pdf')
+    # fname2 = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
+    # plot_all(run=args.run, config=args.config, s=args.s, seed=args.seed, n_sims=args.n_sims, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname2+'_'+str(exp_id)+'_analysis.pdf')
     
     

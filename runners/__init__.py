@@ -10,3 +10,4 @@ from .ivae_gd import runner as ivae_gd_runner
 from .ivae_final_lbfgs import runner as ivae_lbfgs_runner
 from .fast_ica import runner as fastica_runner
 from .ivae_adam import runner as ivae_adam_runner
+from .ivae_final_lbfgs_batches import runner as ivae_lbfgs_batches_runner
