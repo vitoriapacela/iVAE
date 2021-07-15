@@ -2,7 +2,7 @@
 nps: 2000
 ns: 40
 dl: 10
-dd: 100
+dd: 60
 nl: 2
 p: 'gauss'
 act: 'none'

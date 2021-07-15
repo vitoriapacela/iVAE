@@ -480,12 +480,14 @@ def runner(args, config):
         # if not config.discrete:
         #     continuous(config=config, dset=test_dset, ckpt=weights_path_last, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf')
         # else:
-        if config.discrete:
-            plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
+
+        ## do not save pdf files due to memory issues
+        # if config.discrete:
+        #     plot_individual(run=args.run, config=args.config, s=args.s, seed=seed, ckpt_freq=config.check_freq, exp_id=exp_id, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_metrics.pdf', start=1)
             
-            disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
+        #     disc_plots(config=config, dset=test_dset, m_ckpt=weights_path, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_plots.pdf', check_freq=config.check_freq)
             
-            inference_plots(m_ckpt=weights_path, config=config, check_freq=config.check_freq, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_inference.pdf')
+        #     inference_plots(m_ckpt=weights_path, config=config, check_freq=config.check_freq, pdf_name=fname+'_ls_'+str(seed)+'_'+str(exp_id)+'_inference.pdf')
 
             # the following does not work for LBFGS!
             # but it would be possible to track the gradient of the weights individually and plot them when we compute the norm
