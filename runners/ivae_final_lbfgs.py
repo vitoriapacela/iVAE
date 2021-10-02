@@ -253,7 +253,10 @@ def runner(args, config):
             count = 0 # nonlocal variable
             
             st = time.time() # starting time
+            # print('data_loader')
+            # print(enumerate(data_loader))
             for i, data in enumerate(data_loader):
+                print('i', i)
                 if not factor:
                     x, u, s_true = data
                 else:
