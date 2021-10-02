@@ -9,9 +9,7 @@ import numpy as np
 import torch
 import yaml
 
-# from runners import ivae_runner, tcl_runner, ivae_sgd_runner, ivae_lbfgs_runner, ivae_data_runner, ivae_lbfgs2_runner, ivae_gd_runner
-from runners import tcl_runner, ivae_lbfgs_runner, ivae_gd_runner, fastica_runner, ivae_adam_runner
-# , ivae_lbfgs_batches_runner
+from runners import ivae_data_lbfgs_runner
 torch.set_default_dtype(torch.double)
 torch.backends.cudnn.benchmark = False
 # torch.set_deterministic(True) # does not work
@@ -87,7 +85,8 @@ def parse():
     '''
     parser = argparse.ArgumentParser(description='')
 
-    parser.add_argument('--custom_data_path', type=str, help="Custom data path.")
+    parser.add_argument('--obs_data_path', type=str, help="Observed data path (csv).")
+    parser.add_argument('--mix_data_path', type=str, help="Mixing matrix data path (csv).")
     parser.add_argument('--config', type=str, default='ivae.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
     parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
@@ -179,29 +178,7 @@ def main():
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.DoubleTensor)
     
-    if new_config.tcl:
-        r = tcl_runner(args, new_config)
-    elif new_config.fastica:
-        r = fastica_runner(args, new_config)
-    else:
-#     elif new_config.ica: 
-        if new_config.lbfgs:
-            r = ivae_lbfgs_runner(args, new_config)
-            # r = ivae_lbfgs_batches_runner(args, new_config)
-        elif new_config.adam:
-            r = ivae_adam_runner(args, new_config)
-        else:
-            r = ivae_gd_runner(args, new_config)
-#         if new_config.custom_data:
-#             r = ivae_data_runner(args, new_config)
-#         elif new_config.lbfgs:
-#             r = ivae_lbfgs_runner(args, new_config)
-# #             r = ivae_lbfgs2_runner(args, new_config) #dont use
-#         elif new_config.gd:
-#             r = ivae_gd_runner(args, new_config)
-#         else:
-#             r = ivae_runner(args, new_config)
-# #        r = ivae_sgd_runner(args, new_config) # dont use
+    r = ivae_data_lbfgs_runner(args, new_config)
 
 
 if __name__ == '__main__':
