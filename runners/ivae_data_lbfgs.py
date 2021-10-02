@@ -45,7 +45,7 @@ def runner(args, config):
 
     factor = config.gamma > 0
 
-    print('Data seed: ', str(args.s))
+    # print('Data seed: ', str(args.s))
     
 #     print('Fixing?')
 #     print('fix_prior_mean', args.fix_prior_mean)
@@ -58,7 +58,7 @@ def runner(args, config):
 
     df = pd.read_csv(args.obs_data_path, header=None, sep=' ')
     u = df[df.columns[-1]].values
-    u = to_one_hot(u)[0]
+    u = to_one_hot(u)[0].astype(np.double)
     x = df.iloc[:, 0:df.columns[-1]].values
 
     df2 = pd.read_csv(args.mix_data_path, header=None, sep=' ')
@@ -79,9 +79,15 @@ def runner(args, config):
         print(np.linalg.cond(dset.A_mix))
         print('-------------------')
 
-    loader_params = {'num_workers': 6, 'pin_memory': True} if torch.cuda.is_available() else {}
-    bs = config.nps*config.ns
+    # loader_params = {'num_workers': 6, 'pin_memory': True} if torch.cuda.is_available() else {}
+    loader_params = {'num_workers': 0, 'pin_memory': False} if torch.cuda.is_available() else {}
+    bs = len(x) # batch size
+
     data_loader = DataLoader(dset, batch_size=bs, shuffle=False, drop_last=True, **loader_params)
+    # print('dset')
+    # print(dset.x)
+    # print(dset.A_mix)
+    # print(dset.u)
 
     # Validation set
     # val_dset = SyntheticDataset(args.data_path, config.nps, config.ns, config.dl, config.dd, config.nl, args.s, config.p, config.act, uncentered=config.uncentered, noisy=config.noisy, double=factor, one_hot_labels=config.one_hot, simple_mixing=config.simple_mixing, which='val', discrete=config.discrete, identity=config.identity, m_bounds=np.array([-args.m,args.m]), same_var=config.same_var, norm_A_data=config.norm_A_data, norm_logl=config.norm_logl_data, norm_prior_mean=config.norm_mean_data, std_bounds=np.array([config.std_lower, config.std_upper]), diag=config.diag, percentile=config.percentile)
@@ -172,32 +178,32 @@ def runner(args, config):
                 model.f.fc[0].requires_grad_(True)
                 
                 
-            if args.set_prior:
-                # set weights to true prior
-                with torch.no_grad():
-                    model.prior_mean.fc[0].weight = torch.nn.Parameter(torch.tensor(dset.m.T)) # dset.m are the true means
-                    model.logl.fc[0].weight = torch.nn.Parameter(torch.tensor(np.log( (dset.l.T)**2 ))) # dset.l are the true stds, so we convert them to logvar
+            # if args.set_prior:
+            #     # set weights to true prior
+            #     with torch.no_grad():
+            #         model.prior_mean.fc[0].weight = torch.nn.Parameter(torch.tensor(dset.m.T)) # dset.m are the true means
+            #         model.logl.fc[0].weight = torch.nn.Parameter(torch.tensor(np.log( (dset.l.T)**2 ))) # dset.l are the true stds, so we convert them to logvar
 
-                     # Freeze such weights during the optimization
-                    model.prior_mean.fc[0].requires_grad_(False)
-                    model.logl.fc[0].requires_grad_(False)
+            #          # Freeze such weights during the optimization
+            #         model.prior_mean.fc[0].requires_grad_(False)
+            #         model.logl.fc[0].requires_grad_(False)
                     
-             # fix only prior mean model
-            if args.fix_prior_mean:
-                # init weights to true prior
-                with torch.no_grad():
-                    model.prior_mean.fc[0].weight = torch.nn.Parameter(torch.tensor(dset.m.T)) # dset.m are the true means
-                # Freeze such weights during the optimization
-                for param in model.prior_mean.parameters():
-                    param.requires_grad = False
+            #  # fix only prior mean model
+            # if args.fix_prior_mean:
+            #     # init weights to true prior
+            #     with torch.no_grad():
+            #         model.prior_mean.fc[0].weight = torch.nn.Parameter(torch.tensor(dset.m.T)) # dset.m are the true means
+            #     # Freeze such weights during the optimization
+            #     for param in model.prior_mean.parameters():
+            #         param.requires_grad = False
                     
-            # fix only prior var model        
-            if args.fix_logl:
-                with torch.no_grad():
-                    model.logl.fc[0].weight = torch.nn.Parameter(torch.tensor(np.log( (dset.l.T)**2 ))) # dset.l are the true stds, so we convert them to logvar
-                # Freeze such weights during the optimization
-                for param in model.logl.parameters():
-                    param.requires_grad = False
+            # # fix only prior var model        
+            # if args.fix_logl:
+            #     with torch.no_grad():
+            #         model.logl.fc[0].weight = torch.nn.Parameter(torch.tensor(np.log( (dset.l.T)**2 ))) # dset.l are the true stds, so we convert them to logvar
+            #     # Freeze such weights during the optimization
+            #     for param in model.logl.parameters():
+            #         param.requires_grad = False
                         
             # Do not train weights of the inference model if we are fixing the sampled latent sources to the true sources
             if args.set_inf:
@@ -230,7 +236,8 @@ def runner(args, config):
             writer = SummaryWriter(tensorboard_dir + str(seed) + '/')
             writer.add_graph(model, (Xt, Ut)) # add model to tensorboard
     
-        file_path = str(args.run) + '/' + os.path.splitext(args.config)[0] + '_ds_'+str(args.s) + '_ls_' + str(seed) + '_' + str(exp_id) + '.csv'
+        # file_path = str(args.run) + '/' + os.path.splitext(args.config)[0] + '_ds_'+str(args.s) + '_ls_' + str(seed) + '_' + str(exp_id) + '.csv'
+        file_path = str(args.run) + '/' + args.obs_data_path.split('.csv')[0] + args.mix_data_path.split('.csv')[0] + '_ls_' + str(seed) + '_' + str(exp_id) + '.csv'
 
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -262,7 +269,6 @@ def runner(args, config):
             train_perf = 0 # MCC sources
             
             count = 0 # nonlocal variable
-            
             st = time.time() # starting time
             for i, data in enumerate(data_loader):
                 if not factor:
@@ -271,8 +277,9 @@ def runner(args, config):
                     x, x2, u, s_true = data
 
                 x, u = x.to(config.device), u.to(config.device)
-                
+                # print('test1')
                 def closure():
+                    # print('test2')
                     nonlocal count
                     optimizer.zero_grad()
 
@@ -349,16 +356,16 @@ def runner(args, config):
                         mix_mcs = 0
                     
 
-                    if config.uncentered or config.discrete:
-                        if config.dd > 1 and config.dl > 1 and config.ns > 1:
-                            # MCC of prior mean
-                            est_mean = (model.prior_mean.fc[0].weight.cpu().detach().numpy()).T
-                            mcs_mean = mcc(dset.m, est_mean, method='cos')
+                    # if config.uncentered or config.discrete:
+                    #     if config.dd > 1 and config.dl > 1 and config.ns > 1:
+                    #         # MCC of prior mean
+                    #         est_mean = (model.prior_mean.fc[0].weight.cpu().detach().numpy()).T
+                    #         mcs_mean = mcc(dset.m, est_mean, method='cos')
 
-                    if config.dd > 1 and config.dl > 1 and config.ns > 1:
-                        # MCC of prior variance
-                        est_var = (model.logl.fc[0].weight.cpu().detach().numpy()).T
-                        mcs_var = mcc(dset.l, est_var, method='cos')
+                    # if config.dd > 1 and config.dl > 1 and config.ns > 1:
+                    #     # MCC of prior variance
+                    #     est_var = (model.logl.fc[0].weight.cpu().detach().numpy()).T
+                    #     mcs_var = mcc(dset.l, est_var, method='cos')
 
                     if config.verbose:
                         print('==> Step {}:\t train loss: {:.6f}\t train perf: {:.6f} \t full perf: {:,.6f} \t mcs lin: {:,.6f} \t mcs p: {:,.6f}'.format(count, train_loss, train_perf, perf_all, mix_perf, mix_mcs))
@@ -371,6 +378,7 @@ def runner(args, config):
                     norm_diff = 0
 
                     row_contents = [perf_all, train_loss, train_perf, val_loss, val_perf, mix_perf, mix_mcs, grad_norm, norm_diff, iteration_time]
+                    # print('row_contents', row_contents)
                     append_list_as_row(file_path, row_contents)
                     
                     if config.wandb:
@@ -383,12 +391,12 @@ def runner(args, config):
                                     'Validation Set MCC (Sources)': val_perf,
                                     'step': count
                                     })
-                        if config.dd > 1 and config.dl > 1:
-                            wandb.log({'Prior variance MCS': mcs_var, 'step': count})
+                        # if config.dd > 1 and config.dl > 1:
+                        #     wandb.log({'Prior variance MCS': mcs_var, 'step': count})
 
-                        if config.uncentered or config.discrete:
-                            if config.dd > 1 and config.dl > 1:
-                                wandb.log({'Prior mean MCS': mcs_mean, 'step': count})
+                        # if config.uncentered or config.discrete:
+                        #     if config.dd > 1 and config.dl > 1:
+                        #         wandb.log({'Prior mean MCS': mcs_mean, 'step': count})
 
                         # The following assumes a square mixing matrix and a linear mixing model
                         # Track mixing model weights
