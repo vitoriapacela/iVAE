@@ -69,7 +69,8 @@ def runner(args, config):
     d_data, d_latent, d_aux = dset.get_dims()
     
     # print true mixing matrix
-    if ((config.dd < 11) and (config.dl < 11)):
+    # if ((config.dd < 11) and (config.dl < 11)):
+    if ((len(A)< 11) and (len(A[0]) < 11)):
         print('-------------------')
         print('True mixing matrix')
         print(dset.A_mix)
@@ -135,8 +136,8 @@ def runner(args, config):
 
         # FastICA
         st = time.time() # starting time
-        
-        transformer = FastICA(n_components=config.dl, random_state=seed, whiten=True, max_iter=1000)
+
+        transformer = FastICA(n_components=len(A[0]), random_state=seed, whiten=True, max_iter=1000)
         S_est = transformer.fit_transform(X)
 
         ttime_s = time.time() - st # final time
