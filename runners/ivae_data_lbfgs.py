@@ -68,7 +68,8 @@ def runner(args, config):
     d_data, d_latent, d_aux = dset.get_dims()
     
     # print true mixing matrix
-    if ((config.dd < 11) and (config.dl < 11)):
+    # if ((config.dd < 11) and (config.dl < 11)):
+    if ((len(A) < 11) and (len(A[0]) < 11)):
         print('-------------------')
         print('True mixing matrix')
         print(dset.A_mix)
@@ -344,7 +345,8 @@ def runner(args, config):
                         mix_perf = 0
 
                     # MCS mixing matrix linear permutations
-                    if ((config.dd < 11) and (config.dl < 11)):
+                    # if ((config.dd < 11) and (config.dl < 11)):
+                    if ((len(A) < 11) and (len(A[0]) < 11)):
                         try:
                             # mix_mcs = mcs_p(model.f.fc[0].weight.data, At, method='cos')
                             mix_mcs = mcc(model.f.fc[0].weight.data.detach().cpu().numpy(), At.detach().cpu().numpy(), method='cos')
