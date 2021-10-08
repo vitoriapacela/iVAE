@@ -22,6 +22,12 @@ if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.DoubleTensor)
         
 def to_one_hot(x, m=None):
+    '''
+    One-hot encode vector x.
+    x: (np.ndarray) vector containing categorical values.
+    m: (int) number of segments.
+    x is supposed to range from 0 to m-1 (be careful if its minimum value is 1).
+    '''
     if type(x) is not list:
         x = [x]
     if m is None:

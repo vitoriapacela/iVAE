@@ -58,7 +58,8 @@ def runner(args, config):
 
     df = pd.read_csv(args.obs_data_path, header=None, sep=' ')
     u = df[df.columns[-1]].values
-    u = to_one_hot(u)[0].astype(np.double)
+    u = np.array(u)-1
+    u = to_one_hot([u])[0].astype(np.double)
     x = df.iloc[:, 0:df.columns[-1]].values
 
     df2 = pd.read_csv(args.mix_data_path, header=None, sep=' ')
