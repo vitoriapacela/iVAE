@@ -489,6 +489,9 @@ def runner(args, config):
         print('\ntotal runtime: {} seconds'.format(ttime_s))
         print('\ntotal runtime: {} minutes'.format(ttime_s/60))
         print('\ntotal runtime: {} hours'.format((ttime_s/60)/60))
+
+        if ((len(A) < 11) and (len(A[0]) < 11)):
+            print('Estimated mixing matrix: ', model.f.fc[0].weight.data.detach().cpu().numpy())
     
         ## Plots and mixing matrix for every learning seed after the last epoch
         fname = os.path.join(args.run, '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims), str(args.s)]))
