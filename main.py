@@ -87,6 +87,7 @@ def parse():
     '''
     parser = argparse.ArgumentParser(description='')
 
+    parser.add_argument('--ns', type=int, help="Number of segments.", default=None)
     parser.add_argument('--custom_data_path', type=str, help="Custom data path.")
     parser.add_argument('--config', type=str, default='ivae.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
