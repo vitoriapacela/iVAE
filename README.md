@@ -1,7 +1,10 @@
 # Binary iVAE
-iVAE [VAEs and nonlinear ICA: a unifying framework](https://arxiv.org/abs/1907.04809) implementation adapted for binary data.
+Identifiable VAE (iVAE) implementation adapted for binary data, based on [Ilyes Khemakhem's code](https://github.com/ilkhem/icebeem/tree/master/models/ivae).
 
-To set up the cluster environment, execute `environments/ukko_2_env.sh` or `environments/puhti_env.sh`.
+Install the virtual environment and dependencies listed at `environment/` (see `conda_env.sh` for example).
+
+
+To reproduce some of the baseline results from the paper [Binary independent component analysis: a non-stationarity-based approach](https://proceedings.mlr.press/v180/hyttinen22a.html), run:
 
 Run the iVAE with:
 `python ivae.py --obs_data_path data_5_40_1000_1.csv --mix_data_path mix_5_40_1000_1.csv --s 0 --config binary-6-2-lbfgs-100-seg.yaml --ckpt_folder='run/checkpoints/'`
